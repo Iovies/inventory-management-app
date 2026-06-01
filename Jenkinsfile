@@ -11,12 +11,17 @@
         pollSCM('H/5 * * * *')
     }
 
-    environment {
-        PROJECT_ID = credentials('GCP_PROJECT_ID')
-        REGION = 'europe-west3'
-        REPOSITORY = 'inventory-backend-repo'
-        SERVICE_NAME = 'inventory-backend'
-    }
+environment {
+    PROJECT_ID = 'alien-sol-459519-s3'
+    REGION = 'europe-west1'
+    REPOSITORY = 'inventory-repo'
+
+    BACKEND_SERVICE = 'inventory-backend'
+    FRONTEND_SERVICE = 'inventory-frontend'
+
+    BACKEND_IMAGE = 'europe-west1-docker.pkg.dev/alien-sol-459519-s3/inventory-repo/inventory-backend'
+    FRONTEND_IMAGE = 'europe-west1-docker.pkg.dev/alien-sol-459519-s3/inventory-repo/inventory-frontend'
+}
 
     stages {
         stage('Checkout') {
