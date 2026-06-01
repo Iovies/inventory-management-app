@@ -7,3 +7,5 @@ backend/target/
 jenkins_home/
 .idea/
 .vscode/
+gcp-key.json
+jenkins-gcp-key.json
