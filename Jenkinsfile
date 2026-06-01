@@ -56,20 +56,21 @@ environment {
     		}
 	}
 
-        stage('Deploy to Cloud Run') {
-            steps {
-                // Asumăm că variabilele sensibile (DB etc.) sunt setate ca Jenkins credentials
-                withCredentials([string(credentialsId: 'DB_USER', variable: 'DB_USER'), string(credentialsId: 'DB_PASSWORD', variable: 'DB_PASSWORD'), string(credentialsId: 'CLOUD_SQL_CONNECTION_NAME', variable: 'CLOUD_SQL_CONNECTION_NAME')]) {
-                    sh '''
-                    IMAGE=europe-west1-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE_NAME}:${GIT_COMMIT}
-                    echo "Deploying $IMAGE to Cloud Run (${REGION})"
-                    gcloud run deploy ${SERVICE_NAME} --image $IMAGE --region ${REGION} --platform managed --allow-unauthenticated \
-                      --set-env-vars SPRING_DATASOURCE_URL=jdbc:postgresql:///${DB_USER}?cloudSqlInstance=${CLOUD_SQL_CONNECTION_NAME}&socketFactory=com.google.cloud.sql.postgres.SocketFactory,SPRING_DATASOURCE_USERNAME=${DB_USER},SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD},SPRING_JPA_HIBERNATE_DDL_AUTO=update
-                    '''
-                }
-            }
-        }
+stage('Deploy to Cloud Run') {
+    steps {
+        sh '''
+        IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE_NAME}:${GIT_COMMIT}
+        echo "Deploying $IMAGE to Cloud Run (${REGION})"
+
+        gcloud run deploy ${SERVICE_NAME} \
+          --image $IMAGE \
+          --region ${REGION} \
+          --platform managed \
+          --allow-unauthenticated \
+          --project ${PROJECT_ID}
+        '''
     }
+}
 
     post {
         success {
