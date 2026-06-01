@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inventory-config
+  namespace: inventory-app
+data:
+  JAVA_OPTS: "-Xms128m -Xmx512m"
+  SPRING_PROFILES_ACTIVE: "sqlite"
+  SPRING_DATASOURCE_URL: "jdbc:sqlite:/data/inventory.db"
+  BACKEND_API_URL: "http://backend:8080"

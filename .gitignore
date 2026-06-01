@@ -1,0 +1,9 @@
+backend/target/
+.m2/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+jenkins_home/
+.idea/
+.vscode/

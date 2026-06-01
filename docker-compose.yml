@@ -1,0 +1,45 @@
+services:
+  sqlite:
+    image: keinos/sqlite3:latest
+    container_name: inventory-sqlite
+    user: "0:0"
+    command: ["sh", "-c", "mkdir -p /db && touch /db/inventory.db && chmod 777 /db && chmod 666 /db/inventory.db && tail -f /dev/null"]
+    volumes:
+      - sqlite-data:/db
+    healthcheck:
+      test: ["CMD-SHELL", "sqlite3 /db/inventory.db 'PRAGMA integrity_check;' | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    image: inventory-backend:latest
+    container_name: inventory-backend
+    depends_on:
+      sqlite:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=sqlite
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/inventory.db
+      - JAVA_OPTS=-Xms128m -Xmx512m
+    volumes:
+      - sqlite-data:/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    image: inventory-frontend:latest
+    container_name: inventory-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+volumes:
+  sqlite-data:

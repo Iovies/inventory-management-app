@@ -1,0 +1,61 @@
+# CI/CD pentru Google Kubernetes Engine (GKE)
+# Build -> push in Artifact Registry -> deploy in GKE.
+substitutions:
+  _REGION: europe-west1
+  _AR_REPOSITORY: inventory-repo
+  _GKE_CLUSTER: inventory-gke
+  _GKE_LOCATION: europe-west1-b
+  _NAMESPACE: inventory-app
+  _BACKEND_IMAGE: inventory-backend
+  _FRONTEND_IMAGE: inventory-frontend
+
+steps:
+  - id: Build backend image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_BACKEND_IMAGE}:$SHORT_SHA
+      - ./backend
+
+  - id: Build frontend image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_FRONTEND_IMAGE}:$SHORT_SHA
+      - ./frontend
+
+  - id: Push backend image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_BACKEND_IMAGE}:$SHORT_SHA
+
+  - id: Push frontend image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_FRONTEND_IMAGE}:$SHORT_SHA
+
+  - id: Deploy to GKE
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        gcloud container clusters get-credentials ${_GKE_CLUSTER} --location ${_GKE_LOCATION} --project $PROJECT_ID
+        kubectl apply -k k8s/overlays/gke
+        kubectl -n ${_NAMESPACE} set image deployment/backend backend=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_BACKEND_IMAGE}:$SHORT_SHA
+        kubectl -n ${_NAMESPACE} set image deployment/frontend frontend=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_FRONTEND_IMAGE}:$SHORT_SHA
+        kubectl -n ${_NAMESPACE} rollout status deployment/backend --timeout=300s
+        kubectl -n ${_NAMESPACE} rollout status deployment/frontend --timeout=300s
+        kubectl -n ${_NAMESPACE} get svc frontend
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_BACKEND_IMAGE}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_FRONTEND_IMAGE}:$SHORT_SHA
+
+options:
+  logging: CLOUD_LOGGING_ONLY

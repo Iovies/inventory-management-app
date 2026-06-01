@@ -1,0 +1,91 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sqlite-data
+  namespace: inventory-app
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlite
+  namespace: inventory-app
+spec:
+  clusterIP: None
+  selector:
+    app: sqlite
+  ports:
+  - port: 8191
+    targetPort: 8191
+    protocol: TCP
+    name: sqlite
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sqlite
+  namespace: inventory-app
+  labels:
+    app: sqlite
+spec:
+  serviceName: sqlite
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlite
+  template:
+    metadata:
+      labels:
+        app: sqlite
+    spec:
+      containers:
+      - name: sqlite
+        image: keinos/sqlite3:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - mkdir -p /db && touch /db/inventory.db && tail -f /dev/null
+        ports:
+        - containerPort: 8191
+          name: sqlite
+        volumeMounts:
+        - name: sqlite-data
+          mountPath: /db
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "128Mi"
+            cpu: "250m"
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - sqlite3 /db/inventory.db 'PRAGMA integrity_check;' | grep -q ok
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - sqlite3 --version >/dev/null
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          timeoutSeconds: 5
+      volumes:
+      - name: sqlite-data
+        persistentVolumeClaim:
+          claimName: sqlite-data

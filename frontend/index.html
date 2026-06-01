@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="app">
+        <header class="app-header">
+            <div>
+                <h1>Inventory Management App</h1>
+                <p>Gestionare simpla pentru produse, cantitati si stoc redus.</p>
+            </div>
+            <label class="api-config">
+                <span>Backend API</span>
+                <input id="apiUrl" type="text" value="/api/products">
+            </label>
+        </header>
+
+        <section class="panel">
+            <h2 id="formTitle">Adauga produs</h2>
+            <form id="productForm" class="product-form">
+                <input type="hidden" id="productId">
+
+                <label>
+                    Nume
+                    <input id="name" type="text" required placeholder="Laptop">
+                </label>
+
+                <label>
+                    Categorie
+                    <input id="category" type="text" required placeholder="Electronice">
+                </label>
+
+                <label>
+                    Cantitate
+                    <input id="quantity" type="number" min="0" step="1" required placeholder="10">
+                </label>
+
+                <label>
+                    Pret
+                    <input id="price" type="number" min="0" step="0.01" required placeholder="2499.99">
+                </label>
+
+                <label>
+                    Prag stoc redus
+                    <input id="lowStockThreshold" type="number" min="0" step="1" placeholder="5">
+                </label>
+
+                <label class="wide-field">
+                    Descriere
+                    <textarea id="description" rows="3" placeholder="Descriere optionala"></textarea>
+                </label>
+
+                <div class="form-actions">
+                    <button id="submitButton" type="submit">Adauga produs</button>
+                    <button id="cancelEdit" type="button" class="secondary hidden">Anuleaza</button>
+                </div>
+            </form>
+            <p id="message" class="message" role="status"></p>
+        </section>
+
+        <section class="panel">
+            <div class="section-title">
+                <h2>Lista produselor</h2>
+                <button id="refreshButton" type="button" class="secondary">Reincarca</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nume</th>
+                            <th>Categorie</th>
+                            <th>Descriere</th>
+                            <th>Cantitate</th>
+                            <th>Prag</th>
+                            <th>Pret</th>
+                            <th>Creat la</th>
+                            <th>Actiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Produse cu stoc redus</h2>
+            <ul id="lowStockList" class="low-stock-list"></ul>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

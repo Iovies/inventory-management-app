@@ -1,0 +1,82 @@
+# CI/CD demo pentru Cloud Run.
+# Ruleaza backend-ul cu profilul local (fara baza de date persistenta), apoi frontend-ul face proxy catre URL-ul backend.
+substitutions:
+  _REGION: europe-west1
+  _AR_REPOSITORY: inventory-repo
+  _BACKEND_SERVICE: inventory-backend
+  _FRONTEND_SERVICE: inventory-frontend
+  _BACKEND_IMAGE: inventory-backend
+  _FRONTEND_IMAGE: inventory-frontend
+
+steps:
+  - id: Build backend image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_BACKEND_IMAGE}:$SHORT_SHA
+      - ./backend
+
+  - id: Push backend image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_BACKEND_IMAGE}:$SHORT_SHA
+
+  - id: Deploy backend to Cloud Run
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        gcloud run deploy ${_BACKEND_SERVICE} \
+          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_BACKEND_IMAGE}:$SHORT_SHA \
+          --region ${_REGION} \
+          --platform managed \
+          --allow-unauthenticated \
+          --port 8080 \
+          --set-env-vars SPRING_PROFILES_ACTIVE=local \
+          --memory 512Mi
+        gcloud run services describe ${_BACKEND_SERVICE} --region ${_REGION} --format='value(status.url)' > /workspace/backend_url.txt
+
+  - id: Build frontend image for Cloud Run
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - ./frontend/Dockerfile.cloudrun
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_FRONTEND_IMAGE}:$SHORT_SHA
+      - ./frontend
+
+  - id: Push frontend image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_FRONTEND_IMAGE}:$SHORT_SHA
+
+  - id: Deploy frontend to Cloud Run
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        BACKEND_URL="$(cat /workspace/backend_url.txt)"
+        gcloud run deploy ${_FRONTEND_SERVICE} \
+          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_FRONTEND_IMAGE}:$SHORT_SHA \
+          --region ${_REGION} \
+          --platform managed \
+          --allow-unauthenticated \
+          --port 8080 \
+          --set-env-vars BACKEND_URL=${BACKEND_URL}
+        echo "Frontend URL:"
+        gcloud run services describe ${_FRONTEND_SERVICE} --region ${_REGION} --format='value(status.url)'
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_BACKEND_IMAGE}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_FRONTEND_IMAGE}:$SHORT_SHA
+
+options:
+  logging: CLOUD_LOGGING_ONLY

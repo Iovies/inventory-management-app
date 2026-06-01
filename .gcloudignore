@@ -1,0 +1,9 @@
+.git
+.gitignore
+.vscode/
+backend/target/
+backend.tar
+frontend.tar
+*.7z
+*.zip
+node_modules/
