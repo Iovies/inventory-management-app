@@ -16,8 +16,8 @@ public class HealthController {
         return "OK - deployed automatically by Jenkins";
     }
     
-    @GetMapping("/health")
-    public String health() {
+    @GetMapping("/test")
+    public String test() {
         return "Test lab 4";
     }
 }
