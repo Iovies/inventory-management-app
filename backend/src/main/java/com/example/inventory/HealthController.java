@@ -18,6 +18,6 @@ public class HealthController {
     
     @GetMapping("/test")
     public String test() {
-        return " Laboratorul 4 a fost realizat cu succes";
+        return " nu vreau sa scriu examenul";
     }
 }
